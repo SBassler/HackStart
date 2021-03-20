@@ -55,6 +55,7 @@ activity_time <- c()
 recognized_activity <- c()
 basic_activity <- c()
 activity_details <- c()
+activity_day <- c()
 
 test <- data.frame(read_csv("/Users/bassler/Desktop/Combined_data.csv"))
 for (e in 1:nrow(test)){
@@ -64,17 +65,16 @@ for (e in 1:nrow(test)){
   recognized_activity <- c(recognized_activity, text[3])
   basic_activity <- c(basic_activity, text[4])
   activity_details <- c(activity_details, text[5])
+  time <- as.character(ymd_hms(gsub("[T]", " ",text [2]), tz = "CET"))
+  activity_day <- c(activity_day, strsplit(time, split = " ")[[1]][1])
 }
 
-activity_day <- c()
-for (f in activity_time){
-  activity_day <- c(activity_day, strsplit(f, split = " ")[[1]][1])
-}
+
 
 basic_activity <- gsub("[^A-Za-z0-9: ,]", "", basic_activity)
 full_data <- data.frame(ID, activity_time, activity_day, recognized_activity, activity_details, basic_activity)
 full_data <- full_data %>% mutate(month = as.yearmon(activity_day))
-write.table(full_data, "/Users/bassler/Desktop/Combined_data_final2.csv")
+
 full_data_saved <- full_data
 tibble(full_data)
 user_list <- unique(full_data$ID)
@@ -111,30 +111,30 @@ full_data$final_activity <- rep("None", nrow(full_data))
 full_data[full_data$recognized_activity %in% move,]$final_activity <- "move"
 full_data[full_data$recognized_activity %in% recharge,]$final_activity <- "recharge"
 full_data[full_data$recognized_activity %in% eat,]$final_activity <- "eat"
+write.table(full_data, paste0("/Users/bassler/Desktop/Summary.txt"), sep="\t", quote = F, row.names=FALSE)
 
-write.table(full_data, "/Users/bassler/Desktop/Combined_data_final.csv")
+#full_data <- read.table("/Users/bassler/Desktop/Summary.txt", header = T)
 
-user <- user_list [2]
-test_data <- full_data [full_data$ID %in% user,]
-
-
-filter(test_data, final_activity != "None") %>%
-  ggplot(aes(x=as.Date(activity_day), y=final_activity, fill=..y..))+
-  #geom_density_ridges()+
-  geom_density_ridges_gradient(scale = 3, rel_min_height = 0.0001, color = NA) +
-  scale_fill_viridis(name = "Counts") +
-  theme(axis.text.x = element_text(angle=75, vjust=0.6, size=12, family="SF Pro Display"),
-    panel.background = element_blank(),#, axis.line = element_line(colour = "black"),
-    plot.title = element_blank(),
-    axis.title.x = element_blank(),
-    axis.title.y = element_blank(),
-    axis.text.y = element_text(size=12, family="SF Pro Display"),
-    legend.title  = element_text(size=12, family="SF Pro Display"))+
-  scale_x_date(date_labels = '%b-%Y',date_breaks  ="6 month") +
-  labs(title=paste0("User ",user, " profile"),
-       #subtitle="City Mileage grouped by Class of vehicle",
-       x="Month",
-       fill="Counts",
-       y="Categories")
-
+for (user in user_list[1:20]){
+  test_data <- full_data [full_data$ID %in% user,]
+  filter(test_data, final_activity != "None") %>%
+    ggplot(aes(x=as.Date(activity_day), y=final_activity, fill=..y..))+
+    #geom_density_ridges()+
+    geom_density_ridges_gradient(scale = 3, rel_min_height = 0.0001, color = NA) +
+  #  scale_fill_viridis(name = "Counts") +
+    theme(axis.text.x = element_text(angle=75, vjust=0.6, size=12, family="SF Pro Display"),
+          panel.background = element_blank(),#, axis.line = element_line(colour = "black"),
+          plot.title = element_blank(),
+          axis.title.x = element_blank(),
+          axis.title.y = element_blank(),
+          legend.position = "none",
+          legend.title = element_blank(),
+          axis.text.y = element_text(size=12, family="SF Pro Display"))+
+    scale_x_date(date_labels = '%b-%Y',date_breaks  ="3 month", limits = c(as.Date("2020-02-01"), as.Date("2021-02-01"))) +
+    labs(title=paste0("User ",user, " profile"),
+         #subtitle="City Mileage grouped by Class of vehicle",
+         x="Month",
+         y="Categories") -> p
+  ggsave(paste0("/Users/bassler/Desktop/Hackathon/Plots/Plot_",user,".png"), plot=p, width=5, height=2.83, dpi=500, limitsize = FALSE)
+}
 
