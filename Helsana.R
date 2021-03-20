@@ -6,9 +6,11 @@ require(LSD)
 require(corrplot)
 library(igraph)
 require(plotrix)
+library(RColorBrewer)
 library(scales)
 library(grid)
 library(ggridges)
+library(padr)
 library(extrafont)
 font_import()
 loadfonts(device = "win")
@@ -115,12 +117,101 @@ write.table(full_data, paste0("/Users/bassler/Desktop/Summary.txt"), sep="\t", q
 
 #full_data <- read.table("/Users/bassler/Desktop/Summary.txt", header = T)
 
-for (user in user_list[1:20]){
-  test_data <- full_data [full_data$ID %in% user,]
+good_users <- c()
+for (n in 1:length(user_list)){
+  test_data <- full_data [full_data$ID %in% user_list[n],]
+  acts <- test_data[test_data$activity_day > "2020.04.01",]$final_activity
+  if (c("move") %in% acts & ("recharge") %in% acts & ("eat") %in% acts){
+    good_users <- c(good_users, n)
+  }
+}
+
+colors <- RColorBrewer::brewer.pal(7, "PuBu")
+
+for (n in good_users){
+  test_data <- full_data [full_data$ID %in% user_list[n] & full_data$final_activity == "move",]
+  
+}
+
+
+
+
+
+
+
+#####Move#####
+for (n in good_users){
+  test_data <- full_data [full_data$ID %in% user_list[n] & full_data$final_activity == "move",]
+  ggplot(test_data, aes(x=as.Date(activity_day), y=..density..)) + 
+    geom_density(aes(fill=recognized_activity),color=NA, position="stack")+
+    scale_x_date(date_labels = '%b-%Y', date_breaks  ="3 month", limits = c(as.Date("2020-02-01"), as.Date("2021-03-01")))+
+    theme(axis.text.x = element_text(angle=75, vjust=0.6, size=12, family="SF Pro Display"),
+          panel.background = element_blank(),#, axis.line = element_line(colour = "black"),
+          plot.title = element_blank(),
+          axis.title.x = element_blank(),
+          axis.title.y = element_blank(),
+          axis.text.y=element_blank(),
+          axis.ticks.y=element_blank(),
+          legend.position = "right",
+          legend.title = element_blank())+
+    labs(title=paste0("User ",user, " profile"),
+         #subtitle="City Mileage grouped by Class of vehicle",
+         legend="Recognized activity") -> p
+  ggsave(paste0("/Users/bassler/Dropbox/Hackathon/Move_plot/Plots_User_",n,"_move.png"), plot=p)
+}
+
+#####Eat#####
+for (n in good_users){
+  test_data <- full_data [full_data$ID %in% user_list[n] & full_data$final_activity == "eat",]
+  ggplot(test_data, aes(x=as.Date(activity_day), y=..density..)) + 
+    geom_density(aes(fill=recognized_activity),color=NA, position="stack")+
+    scale_x_date(date_labels = '%b-%Y', date_breaks  ="3 month", limits = c(as.Date("2020-02-01"), as.Date("2021-03-01")))+
+    theme(axis.text.x = element_text(angle=75, vjust=0.6, size=12, family="SF Pro Display"),
+          panel.background = element_blank(),#, axis.line = element_line(colour = "black"),
+          plot.title = element_blank(),
+          axis.title.x = element_blank(),
+          axis.title.y = element_blank(),
+          axis.text.y=element_blank(),
+          axis.ticks.y=element_blank(),
+          legend.position = "right",
+          legend.title = element_blank())+
+    labs(title=paste0("User ",user, " profile"),
+         #subtitle="City Mileage grouped by Class of vehicle",
+         legend="Recognized activity") -> p
+  ggsave(paste0("/Users/bassler/Dropbox/Hackathon/Eat_plot/Plots_User_",n,"_eat.png"), plot=p)
+}
+
+
+#####Recharge#####
+for (n in good_users){
+  test_data <- full_data [full_data$ID %in% user_list[n] & full_data$final_activity == "recharge",]
+  ggplot(test_data, aes(x=as.Date(activity_day), y=..density..)) + 
+    geom_density(aes(fill=recognized_activity),color=NA, position="stack")+
+    scale_x_date(date_labels = '%b-%Y', date_breaks  ="3 month", limits = c(as.Date("2020-02-01"), as.Date("2021-03-01")))+
+    theme(axis.text.x = element_text(angle=75, vjust=0.6, size=12, family="SF Pro Display"),
+          panel.background = element_blank(),#, axis.line = element_line(colour = "black"),
+          plot.title = element_blank(),
+          axis.title.x = element_blank(),
+          axis.title.y = element_blank(),
+          axis.text.y=element_blank(),
+          axis.ticks.y=element_blank(),
+          legend.position = "right",
+          legend.title = element_blank())+
+    labs(title=paste0("User ",user, " profile"),
+         #subtitle="City Mileage grouped by Class of vehicle",
+         legend="Recognized activity") -> p
+  ggsave(paste0("/Users/bassler/Dropbox/Hackathon/Recharge_plot/Plots_User_",n,"_recharge.png"), plot=p)
+}
+
+
+#####Summary#####
+for (n in good_users){
+  test_data <- full_data [full_data$ID %in% user_list[n],]
   filter(test_data, final_activity != "None") %>%
     ggplot(aes(x=as.Date(activity_day), y=final_activity, fill=..y..))+
     #geom_density_ridges()+
-    geom_density_ridges_gradient(scale = 3, rel_min_height = 0.0001, color = NA) +
+    geom_density_ridges_gradient(scale = 2, rel_min_height = 0.0001, color = NA) +
+#    geom_density_ridges(stat = "binline", binwidth=1, draw_baseline = F, color = NA)+
   #  scale_fill_viridis(name = "Counts") +
     theme(axis.text.x = element_text(angle=75, vjust=0.6, size=12, family="SF Pro Display"),
           panel.background = element_blank(),#, axis.line = element_line(colour = "black"),
@@ -130,11 +221,14 @@ for (user in user_list[1:20]){
           legend.position = "none",
           legend.title = element_blank(),
           axis.text.y = element_text(size=12, family="SF Pro Display"))+
-    scale_x_date(date_labels = '%b-%Y',date_breaks  ="3 month", limits = c(as.Date("2020-02-01"), as.Date("2021-02-01"))) +
+    scale_x_date(date_labels = '%b-%Y',date_breaks  ="3 month", limits = c(as.Date("2020-02-01"), as.Date("2021-03-01"))) +
     labs(title=paste0("User ",user, " profile"),
          #subtitle="City Mileage grouped by Class of vehicle",
          x="Month",
          y="Categories") -> p
-  ggsave(paste0("/Users/bassler/Desktop/Hackathon/Plots/Plot_",user,".png"), plot=p, width=5, height=2.83, dpi=500, limitsize = FALSE)
+  ggsave(paste0("/Users/bassler/Dropbox/Hackathon/Plots_User_",n,".png"), plot=p)#, width=5, height=2.83, dpi=500, limitsize = FALSE)
 }
+
+
+
 
