@@ -11,6 +11,8 @@ library(scales)
 library(grid)
 library(ggridges)
 library(padr)
+library(ggiraphExtra)
+library(ggradar)
 library(extrafont)
 font_import()
 loadfonts(device = "win")
@@ -51,6 +53,25 @@ library(ggplot2)
 library(ggridges)
 library(gsubfn) 
 library(lubridate)
+par(mar=c(1,1,1,1))
+create_beautiful_radarchart <- function(data, color = "#00AFBB", 
+                                        vlabels = colnames(data), vlcex = 0.7,
+                                        caxislabels = NULL, title = NULL, ...){
+  radarchart(
+    data, axistype = 1,
+    # Customize the polygon
+    pcol = color, pfcol = scales::alpha(color, 0.5), plwd = 2, plty = 1,
+    # Customize the grid
+    cglcol = "grey", cglty = 1, cglwd = 0.8,
+    # Customize the axis
+    axislabcol = "grey", 
+    # Variable labels
+    vlcex = vlcex, vlabels = vlabels,
+    caxislabels = caxislabels, title = title, ...
+  )
+}
+
+
 
 ID <- c()
 activity_time <- c()
@@ -128,17 +149,102 @@ for (n in 1:length(user_list)){
 
 colors <- RColorBrewer::brewer.pal(7, "PuBu")
 
+recharge_score <- c()
+move_score <- c()
+eat_score <- c()
+for (n in 1:length(user_list)){
+  test_data <- full_data [full_data$ID %in% user_list[n] & full_data$activity_day > "2020.04.01",]
+  recharge_score <- c(recharge_score, nrow(test_data [test_data$final_activity == "recharge",]))
+  move_score <- c(move_score, nrow(test_data [test_data$final_activity == "move",]))
+  eat_score <- c(eat_score, nrow(test_data [test_data$final_activity == "eat",]))
+}
+
+score_frame <- data_frame(user_list, recharge_score, move_score, eat_score)
+max(score_frame$recharge_score)
+max(score_frame$move_score)
+max(score_frame$eat_score)
+
+max_recharge <- 49
+max_move <- 142
+max_eat <- 50
+
+#####Total score#####
+recharge_score <- c()
+move_score <- c()
+eat_score <- c()
+total_score <- c()
+for (n in 1:length(user_list)){
+  test_data <- full_data [full_data$ID %in% user_list[n] & full_data$activity_day > "2020.04.01",]
+  recharge_score <- c(recharge_score, (nrow(test_data [test_data$final_activity == "recharge",])/max_recharge)*100)
+  move_score <- c(move_score, (nrow(test_data [test_data$final_activity == "move",])/max_move)*100)
+  eat_score <- c(eat_score, (nrow(test_data [test_data$final_activity == "eat",])/max_eat)*100)
+  total_score <- c(total_score, mean( 
+                  (nrow(test_data [test_data$final_activity == "recharge",])/max_recharge)*100,
+                  (nrow(test_data [test_data$final_activity == "move",])/max_move)*100, 
+                  (nrow(test_data [test_data$final_activity == "eat",])/max_eat)*100))
+}
+
+user_scores <- data.frame (user_list, recharge_score, move_score, eat_score, total_score)
+
+write.table(user_scores, paste0("/Users/bassler/Desktop/User_scores.txt"), sep="\t", quote = F, row.names=FALSE)
+
+#####Spider plot radarchart#####
 for (n in good_users){
-  test_data <- full_data [full_data$ID %in% user_list[n] & full_data$final_activity == "move",]
+  png(paste0("/Users/bassler/Dropbox/Hackathon/Spider_plot2/Plots_User_",n,"_spider.png"))
+  data <-user_scores[n, ]
+  rownames(data) <- data$user_list
+  data<- data[,2:5]
+  max_min <- data.frame(
+    Recharge = c(100, 0), Move = c(100, 0), Eat = c(100, 0),
+    Total = c(100, 0))
+  df <- rbind(max_min, data)
+  rownames(df) <- c("Max", "Min", "User")
   
+  op <- par(mar = c(1, 1, 1, 1))
+  create_beautiful_radarchart(df, caxislabels = c(0, 25, 50, 75, 100))
+  par(op)
+  dev.off()
 }
 
 
+#####Spider ggradar#####
+colnames(user_scores) <- c("user_list", "Recharge", "Move","Eat","Total")
+for (n in good_users){
+  ggradar(
+    user_scores[n, ], 
+    values.radar = c("0", "50", "100"),
+    grid.min = 0, grid.mid = 50, grid.max = 100,
+    # Polygons
+    group.line.width = 1, 
+    group.point.size = 3,
+    group.colours = "#00AFBB",
+    pcol = color, pfcol = scales::alpha(color, 0.5), plwd = 2, plty = 1,
+    # Customize the grid
+    cglcol = "lightblue", cglty = 1, cglwd = 0.8,
+    # Background and grid lines
+    background.circle.colour = "lightblue",
+    gridline.mid.colour = "grey"
+  ) -> p
+  ggsave(paste0("/Users/bassler/Dropbox/Hackathon/Spider_plot/Plots_User_",n,"_spider.png"), plot=p)
+}
 
 
+#####Spider ggplot#####
+scores <- user_scores[n, ]
+colnames(scores) <- c("user_list", "Recharge", "Move", "Eat", "Total" )
+data <- pivot_longer(scores, cols = c(recharge_score, move_score, eat_score, total_score))
 
-
-
+ggplot(data, aes(name, value, group = 1)) +
+  geom_polygon(fill = "blue", colour = "blue", alpha = 0.4) +
+  geom_point(colour = "blue") +
+  coord_radar() +
+  ylim(0, 100) +
+  theme(axis.text.x = element_text(size=12, family="SF Pro Display"),
+        plot.title = element_blank(),
+        axis.title.x = element_blank(),
+        axis.title.y = element_blank(),
+        axis.text.y=element_blank(),
+        axis.ticks.y=element_blank())
 #####Move#####
 for (n in good_users){
   test_data <- full_data [full_data$ID %in% user_list[n] & full_data$final_activity == "move",]
