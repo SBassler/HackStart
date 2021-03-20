@@ -50,7 +50,7 @@ basic_activity <- c()
 activity_details <- c()
 
 test <- data.frame(read_csv("/Users/bassler/Desktop/Combined_data.csv"))
-for (e in 1:500){
+for (e in 1:nrow(test)){
   text <- strsplit(test[e,], split = "_") [[1]]
   ID <- c(ID, text[1])
   activity_time <- c(activity_time, as.character(ymd_hms(gsub("[T]", " ",text [2]), tz = "CET")))
@@ -60,7 +60,7 @@ for (e in 1:500){
 }
 
 basic_activity <- gsub("[^A-Za-z0-9: ,]", "", basic_activity)
-full_data <- data.frame(ID, activity_time, activity_details, recognized_activity, basic_activity)
+full_data <- data.frame(ID, activity_time, recognized_activity, activity_details, basic_activity)
 write.table(full_data, "/Users/bassler/Desktop/Combined_data_final.csv")
 
 
