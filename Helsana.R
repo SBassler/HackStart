@@ -398,9 +398,13 @@ summary_final <-summary_recognized_year_prep %>%
 ID <- summary_final$ID
 summary_final$ID <- NULL
 summary_final_end <- setnafill(summary_final, fill=0)
+summary_final_end <- summary_final_end[,1:148]
 
 #summary_final_end <- summary_final_end %>% add_column(ID)
-#write.table(summary_final_end, paste0("/Volumes/GoogleDrive/My Drive/Hackathon_Delage/Summary_final_end_ID.txt"), sep="\t", quote = F, row.names=FALSE)
+#summary_final_end_df <- data.frame(summary_final_end)
+#colnames(summary_final_end_df) <- colnames(summary_final_end)
+#write.table(data.frame(summary_final_end_df), paste0("/Volumes/GoogleDrive/My Drive/Hackathon_Delage/Summary_final_end_ID.txt"), sep="\t", quote = F, row.names=FALSE)
+
 
 
 umap_results <- umap::umap(summary_final_end)
