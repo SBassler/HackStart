@@ -387,6 +387,10 @@ summary_recognized_year_prep <-
   group_by(ID, year, recognized_activity) %>%
   summarise(n = as.double(n()))#, mean = mean(value), ymin = min(value), ymax = max(value))
 
+
+
+
+#####Merge Years#####
 summary_final <-summary_recognized_year_prep %>%
   #group_by(ID, recognized_activity) %>% 
   #filter(year == 2021) %>%
@@ -404,7 +408,6 @@ summary_final_end <- summary_final_end[,1:148]
 #summary_final_end_df <- data.frame(summary_final_end)
 #colnames(summary_final_end_df) <- colnames(summary_final_end)
 #write.table(data.frame(summary_final_end_df), paste0("/Volumes/GoogleDrive/My Drive/Hackathon_Delage/Summary_final_end_ID.txt"), sep="\t", quote = F, row.names=FALSE)
-
 
 
 umap_results <- umap::umap(summary_final_end)
@@ -466,9 +469,107 @@ p2<-annotate_figure(p,
 ggsave(paste0("/Volumes/GoogleDrive/My Drive/Hackathon_Delage/Final_data_all_TSNE.pdf"), plot=p2, width=15, height=10, dpi=200, limitsize = FALSE)
 
 
+#####Individual Years#####
+
+colors <- RColorBrewer::brewer.pal(5, "PuBu")
+
+summary_final_mutli_year <-summary_recognized_year_prep %>%
+  #group_by(ID, recognized_activity) %>% 
+  #filter(year == 2021) %>%
+  #unite(year, recognized_activity, col="activity_year", sep=" ") %>%
+  pivot_wider(names_from = recognized_activity, values_from = n)
+
+ID <- summary_final_mutli_year$ID
+ID_year <- summary_final_mutli_year$year
+
+summary_final_mutli_year$ID <- NULL
+summary_final_mutli_year$year <- NULL
+summary_final_mutli_year_end<- setnafill(summary_final_mutli_year, fill=0)
+summary_final_mutli_year_end<- summary_final_mutli_year_end[,1:92]
+
+
+umap_results <- umap::umap(summary_final_mutli_year_end)
+umap_plot_df <- data.frame(umap_results$layout, ID, ID_year)
+colnames(user_scores) <- c("ID", "recharge_score", "move_score", "eat_score", "total_score")
+final_umap <- left_join(umap_plot_df, user_scores, by="ID")
+
+p1 <- ggplot(final_umap, aes(x = X1, y = X2, color=recharge_score))+
+  geom_point()+
+  scale_color_gradient2(low = muted("red"), mid = "grey65", high = muted("blue"), midpoint = 50)
+
+p2 <- ggplot(final_umap, aes(x = X1, y = X2, color=move_score))+
+  geom_point()+
+  scale_color_gradient2(low = muted("red"), mid = "grey65", high = muted("blue"), midpoint = 50)
+
+p3 <- ggplot(final_umap, aes(x = X1, y = X2, color=eat_score))+
+  geom_point()+
+  scale_color_gradient2(low = muted("red"), mid = "grey65", high = muted("blue"), midpoint = 50)
+
+p4 <- ggplot(final_umap, aes(x = X1, y = X2, color=total_score))+
+  geom_point()+
+  scale_color_gradient2(low = muted("red"), mid = "grey65", high = muted("blue"), midpoint = 50)+
+  geom_line(data = ~ head(.x, 20))
+
+test <- final_umap [1:50,]
+p5 <- filter(test, ID_year %in% c(2017,2018,2019,2020,2021)) %>%
+  ggplot(aes(x = X1, y = X2, color=ID_year, group=ID))+
+  geom_point()+
+  geom_line()+
+  theme(legend.title = element_blank())+
+  scale_color_brewer(colors)
 
 
 
+
+
+p<-ggarrange(p1, p2, p3, p4, p5, legend="right")# common.legend = TRUE)
+p2<-annotate_figure(p,
+                    top = text_grob("Distribution Health Insurance users_all", color = "black", face = "bold", size = 20))#,
+#bottom = text_grob("Data source: Pilot 4", color = "black",
+#                   hjust = 1, x = 1, face = "italic", size = 10))#,
+ggsave(paste0("/Volumes/GoogleDrive/My Drive/Hackathon_Delage/Final_data_all.pdf"), plot=p2, width=15, height=10, dpi=200, limitsize = FALSE)
+
+
+
+tsne_results <-Rtsne(as.matrix(summary_final_mutli_year_end), check_duplicates = FALSE, pca = FALSE, perplexity=30, theta=0.5, dims=2)
+tsne_plot_df <- data.frame(tsne_results$Y, ID, ID_year)
+colnames(user_scores) <- c("ID", "recharge_score", "move_score", "eat_score", "total_score")
+final_tsne <- left_join(tsne_plot_df, user_scores, by="ID")
+
+p1 <- ggplot(final_tsne, aes(x = X1, y = X2, color=recharge_score))+
+  geom_point()+
+  scale_color_gradient2(low = muted("red"), mid = "grey65", high = muted("blue"), midpoint = 50)
+
+p2 <- ggplot(final_tsne, aes(x = X1, y = X2, color=move_score))+
+  geom_point()+
+  scale_color_gradient2(low = muted("red"), mid = "grey65", high = muted("blue"), midpoint = 50)
+
+p3 <- ggplot(final_tsne, aes(x = X1, y = X2, color=eat_score))+
+  geom_point()+
+  scale_color_gradient2(low = muted("red"), mid = "grey65", high = muted("blue"), midpoint = 50)
+
+p4 <- ggplot(final_tsne, aes(x = X1, y = X2, color=total_score))+
+  geom_point()+
+  scale_color_gradient2(low = muted("red"), mid = "grey65", high = muted("blue"), midpoint = 50)+
+  geom_line(data = ~ head(.x, 20))
+
+test <- final_tsne [1:50,]
+p5 <- filter(test, ID_year %in% c(2017,2018,2019,2020,2021)) %>%
+  ggplot(aes(x = X1, y = X2, color=ID_year, group=ID))+
+  geom_point()+
+  geom_line()+
+  theme(legend.title = element_blank())+
+  scale_color_brewer(colors)
+
+
+
+
+p<-ggarrange(p1, p2, p3, p4,p5, legend="right")# common.legend = TRUE)
+p2<-annotate_figure(p,
+                    top = text_grob("Distribution Health Insurance users", color = "black", face = "bold", size = 20))#,
+#bottom = text_grob("Data source: Pilot 4", color = "black",
+#                   hjust = 1, x = 1, face = "italic", size = 10))#,
+ggsave(paste0("/Volumes/GoogleDrive/My Drive/Hackathon_Delage/Final_data_all_TSNE.pdf"), plot=p2, width=15, height=10, dpi=200, limitsize = FALSE)
 
 
 
