@@ -399,6 +399,8 @@ ID <- summary_final$ID
 summary_final$ID <- NULL
 summary_final_end <- setnafill(summary_final, fill=0)
 
+#summary_final_end <- summary_final_end %>% add_column(ID)
+#write.table(summary_final_end, paste0("/Volumes/GoogleDrive/My Drive/Hackathon_Delage/Summary_final_end_ID.txt"), sep="\t", quote = F, row.names=FALSE)
 
 
 umap_results <- umap::umap(summary_final_end)
