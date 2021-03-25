@@ -20,6 +20,7 @@ library(ggplot2)
 library(viridis)
 library(hrbrthemes)
 library(reshape2)
+library(Rtsne)
 require(drc)
 library(ggsci)
 library(Hmisc)
@@ -28,8 +29,10 @@ require(drm)
 library(growthcurver)
 library(pheatmap)
 library(plotly)
+library(M3C)
 library(data.table)
 library(gifski)
+library(Rtsne)
 library(gridExtra)
 library(gganimate)
 library(dplyr)
@@ -53,6 +56,9 @@ library(ggplot2)
 library(ggridges)
 library(gsubfn) 
 library(lubridate)
+library(umap)
+library(magrittr)
+set.seed(12345)
 par(mar=c(1,1,1,1))
 create_beautiful_radarchart <- function(data, color = "#00AFBB", 
                                         vlabels = colnames(data), vlcex = 0.7,
@@ -72,15 +78,14 @@ create_beautiful_radarchart <- function(data, color = "#00AFBB",
 }
 
 
-
+#####Preparation#####
 ID <- c()
 activity_time <- c()
 recognized_activity <- c()
 basic_activity <- c()
 activity_details <- c()
 activity_day <- c()
-
-test <- data.frame(read_csv("/Users/bassler/Desktop/Combined_data.csv"))
+test <- data.frame(read_csv("/Volumes/GoogleDrive/My Drive/Hackathon_Delage/Combined_data.csv"))
 for (e in 1:nrow(test)){
   text <- strsplit(test[e,], split = "_") [[1]]
   ID <- c(ID, text[1])
@@ -107,7 +112,7 @@ move <- c("Personal exercise","Discover Trails App", "Daily session","Trails App
               "Step Challenge - Helsana Coach App" ,"Challenge dancefloor moves","Spring activity challenge",
               "Dancing challenge", "Movement programme", "Connection to Fitnesstracker","February’s recipe cooking challenge 2021",
           "Link to health tracker app", "Discover Helsana-Trails", "Ball balancing challenge", "24h World Cup challenge" ,
-          "Winter sports+ challenge", "Heart challenge part 2" , "Tartan Track","Step challenge Helsana Coach", 
+          "Winter sports+ challenge", "Heart challenge part 2" , "Tartan Track","Step challenge Helsana Coach",
           "Movement course", "Clean up your trail challenge", "Ergonomic sitting"
               )
 recharge <- c("Relaxation courses","Session mindfulness Coach","Stretching exercises for your back","Happiness Week",
@@ -115,17 +120,17 @@ recharge <- c("Relaxation courses","Session mindfulness Coach","Stretching exerc
               "Prevention", "Relaxation courses", "Make a child laugh", "Hurdles", "Regeneration","Pumpkin carving",
               "Tennis ball massage", "Fun challenge", "Your sanctuary", "Volunteer work" , "Hunt for the Easter surprise boxes",
               "Medical early detection","Mindfulness programme Coach","Local area challenge","Spring activity", "Easter egg challenge",
-              "Daily Session mindfulness Coach" 
+              "Daily Session mindfulness Coach"
               )
 eat <- c("Nutrition programme","Session nutrition Coach","Nutrition programme Coach","Vitamin-rich snacking","December’s recipe cooking challenge",
           "Bonus recipe June","April’s recipe cooking challenge","July’s recipe cooking challenge" , "Bonus recipe July" ,"July’s recipe cooking challenge",
           "August’s recipe cooking challenge", "December’s recipe cooking challenge 2020", "September’s recipe cooking challenge 2020",
           "March’s recipe cooking challenge", "February’s recipe cooking challenge", "June’s recipe cooking challenge",
-          "January’s recipe cooking challenge", "October’s recipe cooking challenge", "September’s recipe cooking challenge", 
-          "Bonus recipe August", "November’s recipe cooking challenge 2020", "Bonus recipe September 2020","Bonus recipe October 2020", "Bonus recipe August", "November’s recipe cooking challenge 2020", 
+          "January’s recipe cooking challenge", "October’s recipe cooking challenge", "September’s recipe cooking challenge",
+          "Bonus recipe August", "November’s recipe cooking challenge 2020", "Bonus recipe September 2020","Bonus recipe October 2020", "Bonus recipe August", "November’s recipe cooking challenge 2020",
          "Bonus recipe September 2020", "Bonus recipe November 2020","May’s recipe cooking challenge", "Nutrition course",
          "Bonus recipe January 2021", "Bonus recipe December 2020", "January’s recipe cooking challenge 2021", "Helsana health bus roadshow",
-         "Bonus recipe February 2021","Bonus recipe April", "Bonus recipe March 2021", "Advent’s recipe cooking", "Bonus recipe May", 
+         "Bonus recipe February 2021","Bonus recipe April", "Bonus recipe March 2021", "Advent’s recipe cooking", "Bonus recipe May",
          "Daily Session nutrition Coach", "Challenge recipe cooking" , "Christmas menu cooking" , "October’s recipe cooking challenge 2020",
          "November’s recipe cooking challenge"
           )
@@ -134,9 +139,11 @@ full_data$final_activity <- rep("None", nrow(full_data))
 full_data[full_data$recognized_activity %in% move,]$final_activity <- "move"
 full_data[full_data$recognized_activity %in% recharge,]$final_activity <- "recharge"
 full_data[full_data$recognized_activity %in% eat,]$final_activity <- "eat"
-write.table(full_data, paste0("/Users/bassler/Desktop/Summary.txt"), sep="\t", quote = F, row.names=FALSE)
 
-#full_data <- read.table("/Users/bassler/Desktop/Summary.txt", header = T)
+write.table(full_data, paste0("/Users/bassler/Desktop/Summary.txt"), sep="\t", quote = F, row.names=FALSE)
+#####Users#####
+
+full_data <- read.table("/Volumes/GoogleDrive/My Drive/Hackathon_Delage/Summary.txt", header = T, sep="\t")
 
 good_users <- c()
 for (n in 1:length(user_list)){
@@ -190,7 +197,7 @@ write.table(user_scores, paste0("/Users/bassler/Desktop/User_scores.txt"), sep="
 
 #####Spider plot radarchart#####
 for (n in good_users){
-  png(paste0("/Users/bassler/Dropbox/Hackathon/Spider_plot2/Plots_User_",n,"_spider.png"))
+  png(paste0("/Volumes/GoogleDrive/My Drive/Hackathon_Delage/Spider_plot2/Plots_User_",n,"_spider.png"))
   data <-user_scores[n, ]
   rownames(data) <- data$user_list
   data<- data[,2:5]
@@ -225,7 +232,7 @@ for (n in good_users){
     background.circle.colour = "lightblue",
     gridline.mid.colour = "grey"
   ) -> p
-  ggsave(paste0("/Users/bassler/Dropbox/Hackathon/Spider_plot/Plots_User_",n,"_spider.png"), plot=p)
+  ggsave(paste0("/Volumes/GoogleDrive/My Drive/Hackathon_Delage/Spider_plot/Plots_User_",n,"_spider.png"), plot=p)
 }
 
 
@@ -259,11 +266,8 @@ for (n in good_users){
           axis.text.y=element_blank(),
           axis.ticks.y=element_blank(),
           legend.position = "right",
-          legend.title = element_blank())+
-    labs(title=paste0("User ",user, " profile"),
-         #subtitle="City Mileage grouped by Class of vehicle",
-         legend="Recognized activity") -> p
-  ggsave(paste0("/Users/bassler/Dropbox/Hackathon/Move_plot/Plots_User_",n,"_move.png"), plot=p)
+          legend.title = element_blank()) -> p
+  ggsave(paste0("/Volumes/GoogleDrive/My Drive/Hackathon_Delage/Move_plot/Plots_User_",n,"_move.png"), plot=p)
 }
 
 #####Eat#####
@@ -284,7 +288,7 @@ for (n in good_users){
     labs(title=paste0("User ",user, " profile"),
          #subtitle="City Mileage grouped by Class of vehicle",
          legend="Recognized activity") -> p
-  ggsave(paste0("/Users/bassler/Dropbox/Hackathon/Eat_plot/Plots_User_",n,"_eat.png"), plot=p)
+  ggsave(paste0("/Volumes/GoogleDrive/My Drive/Hackathon_Delage/Eat_plot/Plots_User_",n,"_eat.png"), plot=p)
 }
 
 
@@ -306,7 +310,7 @@ for (n in good_users){
     labs(title=paste0("User ",user, " profile"),
          #subtitle="City Mileage grouped by Class of vehicle",
          legend="Recognized activity") -> p
-  ggsave(paste0("/Users/bassler/Dropbox/Hackathon/Recharge_plot/Plots_User_",n,"_recharge.png"), plot=p)
+  ggsave(paste0("/Volumes/GoogleDrive/My Drive/Hackathon_Delage/Recharge_plot/Plots_User_",n,"_recharge.png"), plot=p)
 }
 
 
@@ -332,8 +336,133 @@ for (n in good_users){
          #subtitle="City Mileage grouped by Class of vehicle",
          x="Month",
          y="Categories") -> p
-  ggsave(paste0("/Users/bassler/Dropbox/Hackathon/Plots_User_",n,".png"), plot=p)#, width=5, height=2.83, dpi=500, limitsize = FALSE)
+  ggsave(paste0("/Volumes/GoogleDrive/My Drive/Hackathon_Delage/Plots_User_",n,".png"), plot=p)#, width=5, height=2.83, dpi=500, limitsize = FALSE)
 }
+
+
+#####Processing#####
+full_data <- read.table("/Volumes/GoogleDrive/My Drive/Hackathon_Delage/Summary.txt", header = T, sep="\t")
+user_scores <- read.table("/Volumes/GoogleDrive/My Drive/Hackathon_Delage/User_scores.txt", header = T, sep="\t")
+user_list <- unique(full_data$ID)
+good_users <- c()
+for (n in 1:length(user_list)){
+  test_data <- full_data [full_data$ID %in% user_list[n],]
+  acts <- test_data[test_data$activity_day > "2020.04.01",]$final_activity
+  if (c("move") %in% acts & ("recharge") %in% acts & ("eat") %in% acts){
+    good_users <- c(good_users, user_list[n])
+  }
+}
+
+
+summary_recognized_month <- 
+  filter(full_data, final_activity != "None") %>%# & ID %in% good_users) %>% 
+  group_by(ID, month, final_activity,recognized_activity) %>% 
+  summarise(n = as.double(n()))#, mean = mean(value), ymin = min(value), ymax = max(value))
+
+summary_recognized_year <- 
+  filter(full_data, final_activity != "None") %>%# & ID %in% good_users) %>% 
+  group_by(ID, month, final_activity,recognized_activity) %>% 
+  separate(month, remove = F, sep= " ", into=c("mon", "year")) %>%
+  group_by(ID, year, final_activity,recognized_activity) %>%
+  summarise(n = as.double(n()))#, mean = mean(value), ymin = min(value), ymax = max(value))
+
+summary_final_month <- 
+  filter(full_data, final_activity != "None") %>%# & ID %in% good_users) %>% 
+  group_by(ID, month, final_activity) %>% 
+  summarise(n = as.double(n()))#, mean = mean(value), ymin = min(value), ymax = max(value))
+
+summary_final_year <- 
+  filter(full_data, final_activity != "None" & ID %in% good_users) %>% 
+  group_by(ID, month, final_activity) %>% 
+  separate(month, remove = F, sep= " ", into=c("mon", "year")) %>%
+  group_by(ID, year, final_activity) %>% 
+  summarise(n = as.double(n()))#, mean = mean(value), ymin = min(value), ymax = max(value))
+
+
+
+summary_recognized_year_prep <-
+  filter(full_data, final_activity != "None") %>%# & ID %in% good_users) %>% 
+  group_by(ID, month, recognized_activity) %>% 
+  separate(month, remove = F, sep= " ", into=c("mon", "year")) %>%
+  group_by(ID, year, recognized_activity) %>%
+  summarise(n = as.double(n()))#, mean = mean(value), ymin = min(value), ymax = max(value))
+
+summary_final <-summary_recognized_year_prep %>%
+  #group_by(ID, recognized_activity) %>% 
+  #filter(year == 2021) %>%
+  unite(year, recognized_activity, col="activity_year", sep=" ") %>%
+  pivot_wider(names_from = activity_year, values_from = n)
+
+
+
+ID <- summary_final$ID
+summary_final$ID <- NULL
+summary_final_end <- setnafill(summary_final, fill=0)
+
+
+
+umap_results <- umap::umap(summary_final_end)
+umap_plot_df <- data.frame(umap_results$layout, ID)
+colnames(user_scores) <- c("ID", "recharge_score", "move_score", "eat_score", "total_score")
+final_umap <- left_join(umap_plot_df, user_scores, by="ID")
+
+p1 <- ggplot(final_umap, aes(x = X1, y = X2, color=recharge_score))+
+  geom_point()+
+  scale_color_gradient2(low = muted("red"), mid = "grey65", high = muted("blue"), midpoint = 50)
+
+p2 <- ggplot(final_umap, aes(x = X1, y = X2, color=move_score))+
+  geom_point()+
+  scale_color_gradient2(low = muted("red"), mid = "grey65", high = muted("blue"), midpoint = 50)
+
+p3 <- ggplot(final_umap, aes(x = X1, y = X2, color=eat_score))+
+  geom_point()+
+  scale_color_gradient2(low = muted("red"), mid = "grey65", high = muted("blue"), midpoint = 50)
+
+p4 <- ggplot(final_umap, aes(x = X1, y = X2, color=total_score))+
+  geom_point()+
+  scale_color_gradient2(low = muted("red"), mid = "grey65", high = muted("blue"), midpoint = 50)
+
+p<-ggarrange(p1, p2, p3, p4, ncol=4, legend="right")# common.legend = TRUE)
+p2<-annotate_figure(p,
+                    top = text_grob("Distribution Health Insurance users_all", color = "black", face = "bold", size = 20))#,
+#bottom = text_grob("Data source: Pilot 4", color = "black",
+#                   hjust = 1, x = 1, face = "italic", size = 10))#,
+ggsave(paste0("/Volumes/GoogleDrive/My Drive/Hackathon_Delage/Final_data_all.pdf"), plot=p2, width=15, height=10, dpi=200, limitsize = FALSE)
+
+
+
+tsne_results <-Rtsne(as.matrix(summary_final_end), check_duplicates = FALSE, pca = FALSE, perplexity=30, theta=0.5, dims=2)
+tsne_plot_df <- data.frame(tsne_results$Y, ID)
+colnames(user_scores) <- c("ID", "recharge_score", "move_score", "eat_score", "total_score")
+final_tsne <- left_join(tsne_plot_df, user_scores, by="ID")
+
+p1 <- ggplot(final_tsne, aes(x = X1, y = X2, color=recharge_score))+
+  geom_point()+
+  scale_color_gradient2(low = muted("red"), mid = "grey65", high = muted("blue"), midpoint = 50)
+
+p2 <- ggplot(final_tsne, aes(x = X1, y = X2, color=move_score))+
+  geom_point()+
+  scale_color_gradient2(low = muted("red"), mid = "grey65", high = muted("blue"), midpoint = 50)
+
+p3 <- ggplot(final_tsne, aes(x = X1, y = X2, color=eat_score))+
+  geom_point()+
+  scale_color_gradient2(low = muted("red"), mid = "grey65", high = muted("blue"), midpoint = 50)
+
+p4 <- ggplot(final_tsne, aes(x = X1, y = X2, color=total_score))+
+  geom_point()+
+  scale_color_gradient2(low = muted("red"), mid = "grey65", high = muted("blue"), midpoint = 50)
+
+p<-ggarrange(p1, p2, p3, p4, ncol=4, legend="right")# common.legend = TRUE)
+p2<-annotate_figure(p,
+                    top = text_grob("Distribution Health Insurance users", color = "black", face = "bold", size = 20))#,
+#bottom = text_grob("Data source: Pilot 4", color = "black",
+#                   hjust = 1, x = 1, face = "italic", size = 10))#,
+ggsave(paste0("/Volumes/GoogleDrive/My Drive/Hackathon_Delage/Final_data_all_TSNE.pdf"), plot=p2, width=15, height=10, dpi=200, limitsize = FALSE)
+
+
+
+
+
 
 
 
