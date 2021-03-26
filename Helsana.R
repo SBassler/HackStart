@@ -505,29 +505,29 @@ p3 <- ggplot(final_umap, aes(x = X1, y = X2, color=eat_score))+
   geom_point()+
   scale_color_gradient2(low = muted("red"), mid = "grey65", high = muted("blue"), midpoint = 50)
 
+user_x <- "004A92AA05A50D68A09C066C10EBCFF4"
 p4 <- ggplot(final_umap, aes(x = X1, y = X2, color=total_score))+
-  geom_point()+
+  geom_point(alpha=0.1)+
   scale_color_gradient2(low = muted("red"), mid = "grey65", high = muted("blue"), midpoint = 50)+
-  geom_line(data = ~ head(.x, 20))
-
-test <- final_umap [1:50,]
-p5 <- filter(test, ID_year %in% c(2017,2018,2019,2020,2021)) %>%
-  ggplot(aes(x = X1, y = X2, color=ID_year, group=ID))+
-  geom_point()+
-  geom_line()+
-  theme(legend.title = element_blank())+
-  scale_color_brewer(colors)
-
-
-
+  #geom_line(data = ~ head(.x[ID=="004A92AA05A50D68A09C066C10EBCFF4",]))+
+  geom_path(data = subset(final_umap, ID==user_x))+
+  geom_point(data = subset(final_umap, ID==user_x), alpha=1)+
+  geom_text_repel(
+    data = subset(final_umap, ID==user_x),
+    aes(label = ID_year),
+    size = 5,
+    box.padding = unit(0.35, "lines"),
+    point.padding = unit(0.3, "lines")
+  )
 
 
-p<-ggarrange(p1, p2, p3, p4, p5, legend="right")# common.legend = TRUE)
+
+p<-ggarrange(p1, p2, p3, p4, legend="right")# common.legend = TRUE)
 p2<-annotate_figure(p,
                     top = text_grob("Distribution Health Insurance users_all", color = "black", face = "bold", size = 20))#,
 #bottom = text_grob("Data source: Pilot 4", color = "black",
 #                   hjust = 1, x = 1, face = "italic", size = 10))#,
-ggsave(paste0("/Volumes/GoogleDrive/My Drive/Hackathon_Delage/Final_data_all.pdf"), plot=p2, width=15, height=10, dpi=200, limitsize = FALSE)
+ggsave(paste0("/Volumes/GoogleDrive/My Drive/Hackathon_Delage/Final_data_all_UMAP.pdf"), plot=p2, width=15, height=10, dpi=200, limitsize = FALSE)
 
 
 
@@ -548,23 +548,24 @@ p3 <- ggplot(final_tsne, aes(x = X1, y = X2, color=eat_score))+
   geom_point()+
   scale_color_gradient2(low = muted("red"), mid = "grey65", high = muted("blue"), midpoint = 50)
 
+user_x <- "004A92AA05A50D68A09C066C10EBCFF4"
 p4 <- ggplot(final_tsne, aes(x = X1, y = X2, color=total_score))+
-  geom_point()+
+  geom_point(alpha=0.1)+
   scale_color_gradient2(low = muted("red"), mid = "grey65", high = muted("blue"), midpoint = 50)+
-  geom_line(data = ~ head(.x, 20))
+  #geom_line(data = ~ head(.x[ID=="004A92AA05A50D68A09C066C10EBCFF4",]))+
+  geom_path(data = subset(final_umap, ID==user_x))+
+  geom_point(data = subset(final_umap, ID==user_x), alpha=1)+
+  geom_text_repel(
+    data = subset(final_umap, ID==user_x),
+    aes(label = ID_year),
+    size = 5,
+    box.padding = unit(0.35, "lines"),
+    point.padding = unit(0.3, "lines")
+  )
 
-test <- final_tsne [1:50,]
-p5 <- filter(test, ID_year %in% c(2017,2018,2019,2020,2021)) %>%
-  ggplot(aes(x = X1, y = X2, color=ID_year, group=ID))+
-  geom_point()+
-  geom_line()+
-  theme(legend.title = element_blank())+
-  scale_color_brewer(colors)
 
 
-
-
-p<-ggarrange(p1, p2, p3, p4,p5, legend="right")# common.legend = TRUE)
+p<-ggarrange(p1, p2, p3, p4, legend="right")# common.legend = TRUE)
 p2<-annotate_figure(p,
                     top = text_grob("Distribution Health Insurance users", color = "black", face = "bold", size = 20))#,
 #bottom = text_grob("Data source: Pilot 4", color = "black",
