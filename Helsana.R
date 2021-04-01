@@ -641,3 +641,14 @@ ggplot(summary_final3,
   theme_classic() +
   xlab("Diffusion component 1 (DC1)") + ylab("Timepoint") +
   ggtitle("Cells ordered by DC1")
+
+
+dpt <- DPT(dm1, tips = 268)
+
+# Plot DC1 vs DC2 and color the cells by their inferred diffusion pseudotime.
+# We can accesss diffusion pseudotime via dpt$dpt.
+df <- data.frame(DC1 = eigenvectors(dm1)[, 1], DC2 = eigenvectors(dm1)[, 2], 
+                 dptval = dpt$dpt, Year = summary_final3$Year)
+p1 <- ggplot(df) + geom_point(aes(x = DC1, y = DC2, color = dptval))
+p2 <- ggplot(df) + geom_point(aes(x = DC1, y = DC2, color = Year))
+p <- plot_grid(p1, p2)
