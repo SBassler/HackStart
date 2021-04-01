@@ -1,7 +1,9 @@
-
+#####Packages#####
 require(gtools)
 require(Hmisc)
 require(gplots)
+library(destiny)
+library(Biobase)
 require(LSD)
 require(corrplot)
 library(igraph)
@@ -387,6 +389,28 @@ summary_recognized_year_prep <-
   group_by(ID, year, recognized_activity) %>%
   summarise(n = as.double(n()))#, mean = mean(value), ymin = min(value), ymax = max(value))
 
+colors <- RColorBrewer::brewer.pal(5, "PuBu")
+
+summary_final_mutli_year <-summary_recognized_year_prep %>%
+  #group_by(ID, recognized_activity) %>% 
+  #filter(year == 2021) %>%
+  #unite(year, recognized_activity, col="activity_year", sep=" ") %>%
+  pivot_wider(names_from = recognized_activity, values_from = n)
+
+summary_final_mutli_year_full <- summary_final_mutli_year
+ID <- summary_final_mutli_year$ID
+ID_year <- summary_final_mutli_year$year
+
+summary_final_mutli_year$ID <- NULL
+summary_final_mutli_year$year <- NULL
+summary_final_mutli_year_end<- setnafill(summary_final_mutli_year, fill=0)
+summary_final_mutli_year_end<- summary_final_mutli_year_end[,1:92]
+
+
+
+
+
+
 
 
 
@@ -471,23 +495,6 @@ ggsave(paste0("/Volumes/GoogleDrive/My Drive/Hackathon_Delage/Final_data_all_TSN
 
 #####Individual Years#####
 
-colors <- RColorBrewer::brewer.pal(5, "PuBu")
-
-summary_final_mutli_year <-summary_recognized_year_prep %>%
-  #group_by(ID, recognized_activity) %>% 
-  #filter(year == 2021) %>%
-  #unite(year, recognized_activity, col="activity_year", sep=" ") %>%
-  pivot_wider(names_from = recognized_activity, values_from = n)
-
-ID <- summary_final_mutli_year$ID
-ID_year <- summary_final_mutli_year$year
-
-summary_final_mutli_year$ID <- NULL
-summary_final_mutli_year$year <- NULL
-summary_final_mutli_year_end<- setnafill(summary_final_mutli_year, fill=0)
-summary_final_mutli_year_end<- summary_final_mutli_year_end[,1:92]
-
-
 umap_results <- umap::umap(summary_final_mutli_year_end)
 umap_plot_df <- data.frame(umap_results$layout, ID, ID_year)
 colnames(user_scores) <- c("ID", "recharge_score", "move_score", "eat_score", "total_score")
@@ -571,6 +578,49 @@ p2<-annotate_figure(p,
 #bottom = text_grob("Data source: Pilot 4", color = "black",
 #                   hjust = 1, x = 1, face = "italic", size = 10))#,
 ggsave(paste0("/Volumes/GoogleDrive/My Drive/Hackathon_Delage/Final_data_all_TSNE.pdf"), plot=p2, width=15, height=10, dpi=200, limitsize = FALSE)
+
+#####destiny#####
+
+
+summary_final<- cbind(ID, summary_final_mutli_year_end, ID_year)
+summary_final_full <- pivot_longer(summary_final, cols = 2:93, names_to = "Activity", values_to = "Counts")
+patients <- unique(summary_final$ID)
+#test <- summary_final_full[summary_final_full$ID %in% patients,]
+summary_final2 <- summary_final[summary_final$ID %in% patients,]
+colnames(summary_final2) [1] <- c("Cell")
+summary_final2$ID_year <- as.integer(summary_final2$ID_year)
+summary_final2 %<>% mutate(paste0(Cell,"_",ID_year))
+summary_final2$Cell <- NULL
+colnames(summary_final2)[94] <- "Cell"
+summary_final3 <- cbind(summary_final2$Cell, summary_final2$ID_year, summary_final2[,1:92])
+summary_final2<- summary_final2[!duplicated(summary_final2), ]
+summary_final3[,1] <- seq(1,length(summary_final3[,1]),1)
+colnames(summary_final3)[1] <- "Cell"
+colnames(summary_final3)[2] <- "Year"
+rownames(summary_final3) <- summary_final3$Cell
+
+
+
+palette(cube_helix(6))
+
+ct <- as.ExpressionSet(as.data.frame(summary_final3))
+dm1 <- DiffusionMap(ct, k = destiny::find_dm_k(nrow(summary_final3)))
+#dm2 <- DiffusionMap(ct, k = 250)
+palette(cube_helix(6))
+plot(dm1, pch = 20, col_by= 'Year', legend_main = "Year")
+
+plot(dm1, 3:5,
+     pch = 20,
+     col_by = 'Year',
+     legend_main = 'Year')
+
+dpt <- DPT(dm1)
+dpt_random <- DPT(dm1, tips = sample(ncol(summary_final3), 3L))
+grid.arrange(plot(dpt), plot(dpt_random), ncol = 2)
+plot(dpt, col_by = 'Year', pal = viridis::magma)
+plot(dpt, root = 2, paths_to = c(1,3), col_by = 'branch')
+plot(dpt, col_by = 'branch', divide = 3, dcs = c(-1,-3,2), pch = 20)
+
 
 
 
