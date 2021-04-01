@@ -4,6 +4,7 @@ require(Hmisc)
 require(gplots)
 library(destiny)
 library(Biobase)
+library(SummarizedExperiment)
 require(LSD)
 require(corrplot)
 library(igraph)
@@ -614,14 +615,29 @@ plot(dm1, 3:5,
      col_by = 'Year',
      legend_main = 'Year')
 
+
 dpt <- DPT(dm1)
 dpt_random <- DPT(dm1, tips = sample(ncol(summary_final3), 3L))
 grid.arrange(plot(dpt), plot(dpt_random), ncol = 2)
 plot(dpt, col_by = 'Year', pal = viridis::magma)
 plot(dpt, root = 2, paths_to = c(1,3), col_by = 'branch')
-plot(dpt, col_by = 'branch', divide = 3, dcs = c(-1,-3,2), pch = 20)
+#plot(dpt, col_by = 'branch', divide = 3, dcs = c(-1,-3,2), pch = 20)
+
+tmp <- data.frame(DC1 = eigenvectors(dm1)[, 1],
+                  DC2 = eigenvectors(dm1)[, 2],
+                  Timepoint = summary_final3$Year)
+ggplot(tmp, aes(x = DC1, y = DC2, colour = Timepoint)) +
+  geom_point() + 
+  xlab("Diffusion component 1") + 
+  ylab("Diffusion component 2") +
+  theme_classic()
 
 
-
-
-
+summary_final3$pseudotime_diffusionmap <- rank(eigenvectors(dmq)[,1])    # rank cells by their dpt
+ggplot(summary_final3, 
+       aes(x = pseudotime_diffusionmap, 
+           y = Year, colour = Year)) +
+  geom_quasirandom(groupOnX = FALSE) +
+  theme_classic() +
+  xlab("Diffusion component 1 (DC1)") + ylab("Timepoint") +
+  ggtitle("Cells ordered by DC1")
